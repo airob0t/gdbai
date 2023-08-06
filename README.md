@@ -32,7 +32,11 @@ export GDBAI_MODEL="gpt-3.5-turbo"
 - explain - 解释GDB命令的含义
 
 ## load
-`(gdb) source /path/to/gdbai/gdbai.py ` every time or add it to `.gdbinit`
+`(gdb) source /path/to/gdbai/gdbai.py ` every time 
+
+or add it to `.gdbinit`
+
+`echo "source $(python -m site --user-site)/gdbai.py" > $HOME/.gdbinit`
 
 ```
 (gdb) source /path/to/gdbai/gdbai.py 
