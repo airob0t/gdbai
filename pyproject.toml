@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gdbai"
-version = "0.1.0"
+version = "0.1.1"
 description = "gdb AI assistant"
 authors = ["airobot <airobot@airobot.link>"]
 license = "GPLv3"
