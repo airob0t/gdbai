@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "gdbai"
+version = "0.1.0"
+description = "gdb AI assistant"
+authors = ["airobot <airobot@airobot.link>"]
+license = "GPLv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.7.1"
+openai = "^0.27.8"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
