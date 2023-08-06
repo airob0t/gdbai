@@ -32,6 +32,8 @@ export GDBAI_MODEL="gpt-3.5-turbo"
 - explain - 解释GDB命令的含义
 
 ## load
+`pip install -U gdbai`
+
 `(gdb) source /path/to/gdbai/gdbai.py ` every time 
 
 or add it to `.gdbinit`
