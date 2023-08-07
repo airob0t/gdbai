@@ -16,6 +16,7 @@ export http_proxy=http://username:password@proxy_host:proxy_port
 export https_proxy=http://username:password@proxy_host:proxy_port
 export GDBAI_LANG=zh
 export GDBAI_MODEL="gpt-3.5-turbo"
+export CHATGLM_API="http://localhost:8000"
 ```
 
 ## example
@@ -25,23 +26,25 @@ export GDBAI_MODEL="gpt-3.5-turbo"
 - chat - Chat with GPT
 - trans - Translate natural language into a GDB command
 - explain - Explain the meaning of a GDB command
+- llm - Select the language model to use [gpt|glm]  default gpt
 ## 命令
 - ai - 根据当前堆栈信息回答问题
 - chat - 和GPT聊天
 - trans - 将自然语言翻译称一条GDB命令
 - explain - 解释GDB命令的含义
+- llm - 选择语言模型 [gpt|glm]  默认gpt
 
 ## load
 `pip install -U gdbai`
 
-`(gdb) source /path/to/gdbai/gdbai.py ` every time 
+`(gdb) source /path/to/gdbai/gdbai.py ` every time
 
 or add it to `.gdbinit`
 
 `echo "source $(python -m site --user-site)/gdbai.py" > $HOME/.gdbinit`
 
 ```
-(gdb) source /path/to/gdbai/gdbai.py 
+(gdb) source /path/to/gdbai/gdbai.py
 usage:
         ai
         ai Explain what the root cause of this error is.Give me Suggestions
@@ -50,7 +53,7 @@ usage:
         trans show the instructions at the current location
         explain handle SIGINT stop
 (gdb) r
-Starting program: /path/to/gdbai/debug_demo 
+Starting program: /path/to/gdbai/debug_demo
 [Thread debugging using libthread_db enabled]
 Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
 
@@ -58,7 +61,7 @@ Program received signal SIGSEGV, Segmentation fault.
 0x0000555555555236 in print (p=0x0) at debug_demo.cpp:9
 warning: Source file is more recent than executable.
 9         std::cout<< *p << std::endl;
-(gdb) ai 
+(gdb) ai
 Based on the provided GDB debug information, the error seems to occur in the "print" function at line 9 of the "debug_demo.cpp" file. The error is caused by accessing a null pointer (p=0x0).
 
 The root cause of this error is that the "print" function is receiving a null pointer (p) as an argument. Trying to access the memory location pointed to by a null pointer will result in a segmentation fault or other similar error.

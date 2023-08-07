@@ -1,9 +1,14 @@
+import json
 import os
+import time
 import gdb
 import openai
+import requests
 
 # openai.api_key = os.getenv("OPENAI_API_KEY")
 # openai.api_base = os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1")
+CHATGLM_API = os.environ.get("CHATGLM_API", "http://localhost:8000")
+g_llm = "gpt"
 LLMODEL = os.environ.get("GDBAI_MODEL", "gpt-3.5-turbo")
 AnwserLang = os.environ.get("GDBAI_LANG", None)
 
@@ -16,7 +21,7 @@ def get_register_values() -> str:
     except gdb.error as e:
         print(f"Error while getting register vlaues: {e}")
         return None
-    
+
 
 def get_breakpoints() -> str:
     try:
@@ -56,19 +61,45 @@ def get_completion(prompt="") -> str:
     #     prompt=input_text,
     #     max_tokens=100  # Adjust the response length as needed
     # )
+    start_time = time.time()
     if prompt.strip() == "":
         return "empty chat"
 
-    response = openai.ChatCompletion.create(
-        model=LLMODEL,
-        messages=[
-            {"role": "system", "content": "You are a helpful gdb assistant."},
-            {"role": "user", "content": prompt }
-        ]
-    )
+    suggestions = ""
+    if  g_llm == "glm":
+        # print("use chatglm api")
 
-    # Process the AI response and extract suggestions
-    suggestions = response.choices[0].message.get('content','get ai suggestions failed') + '\n'
+        # example: curl -X POST ${CHATGLM_API}  -H 'Content-Type: application/json'  -d '{"prompt": "你好", "history": []}'
+        data = {
+            "prompt": "I want you to play the role of a senior software engineer,\
+                  debugging information through the following GDB\n" + prompt,
+            "history": []
+        }
+
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(CHATGLM_API, headers=headers, data=json.dumps(data))
+        if response.status_code == 200:
+            result = response.json()
+            suggestions = result.get('response', "get ai suggestions failed") + '\n'
+        else:
+            suggestions = "get ai suggestions failed\n"
+
+    elif g_llm == "gpt":
+        # print("use gpt3 api")
+        response = openai.ChatCompletion.create(
+            model=LLMODEL,
+            messages=[
+                {"role": "system", "content": "You are a helpful gdb assistant."},
+                {"role": "user", "content": prompt }
+            ]
+        )
+
+        # Process the AI response and extract suggestions
+        suggestions = response.choices[0].message.get('content','get ai suggestions failed') + '\n'
+    else:
+        suggestions =  "get ai suggestions failed\n"
+
+    # print(f"{g_llm} response time: {time.time() - start_time} seconds")
     return suggestions
 
 def get_debug_info() -> dict:
@@ -121,7 +152,7 @@ class AICommand(gdb.Command):
         # 'arg' contains the arguments passed to the command
         # 'from_tty' is a boolean indicating if the command was invoked from a terminal
 
-        
+
         suggestions = ""
         question = argument.strip()
         info = get_debug_info()
@@ -139,11 +170,11 @@ class AICommand(gdb.Command):
             prompt += "\nExplain what the root cause of this error is.Give me Suggestions." + lang
         else:
             prompt += '\n' + question + lang
-        
+
         # print(prompt)
         suggestions = get_completion(prompt)
         gdb.write(suggestions)
-        
+
 
 class ChatCommand(gdb.Command):
     def __init__(self):
@@ -157,13 +188,13 @@ class ChatCommand(gdb.Command):
         # 'arg' contains the arguments passed to the command
         # 'from_tty' is a boolean indicating if the command was invoked from a terminal
 
-        
+
         suggestions = ""
         if argument.strip() == "":
             suggestions = "usage: chat how to use gdb\n"
         else:
             suggestions = get_completion(argument.strip())
-        
+
         gdb.write(suggestions)
 
 
@@ -179,8 +210,8 @@ class TransCommand(gdb.Command):
         # 'arg' contains the arguments passed to the command
         # 'from_tty' is a boolean indicating if the command was invoked from a terminal
 
-        
-        question = argument.strip() 
+
+        question = argument.strip()
         if question == "":
             suggestions = "usage: trans show the instructions at the current location\n"
             gdb.write(suggestions)
@@ -203,7 +234,7 @@ class ExplainCommand(gdb.Command):
         # 'arg' contains the arguments passed to the command
         # 'from_tty' is a boolean indicating if the command was invoked from a terminal
 
-        
+
         suggestions = ""
         if argument.strip() == "":
             suggestions = "usage: explain handle SIGINT stop\n"
@@ -211,7 +242,32 @@ class ExplainCommand(gdb.Command):
             lang = " in Chinese" if AnwserLang is not None else ""
             prompt = f"Explain for this GDB command{lang}: {argument.strip()}"
             suggestions = get_completion(prompt)
-        
+
+        gdb.write(suggestions)
+
+class SelectLLMCommand(gdb.Command):
+    def __init__(self):
+        super(SelectLLMCommand, self).__init__(
+            "llm",  # The name of the command to be used in GDB
+            gdb.COMMAND_USER  # The command type (in this case, a user-defined command)
+        )
+
+    def invoke(self, argument: str, from_tty: bool) -> None:
+        # 'arg' contains the arguments passed to the command
+        # 'from_tty' is a boolean indicating if the command was invoked from a terminal
+        global g_llm
+
+        suggestions = ""
+        if argument.strip() == "":
+            suggestions = "usage: llm [gpt|glm]\n"
+        else:
+            llm = argument.strip().lower()
+            if llm not in ["gpt", "glm"]:
+                suggestions = "usage: llm [gpt|glm]\n"
+            else:
+                g_llm = llm
+                suggestions = f"select {llm} model\n"
+
         gdb.write(suggestions)
 
 
@@ -219,6 +275,7 @@ AICommand()
 ChatCommand()
 TransCommand()
 ExplainCommand()
+SelectLLMCommand()
 
 gdb.write("usage:\n"
           "\tai\n"
@@ -227,6 +284,7 @@ gdb.write("usage:\n"
           "\tchat how to use gdb\n"
           "\ttrans show the instructions at the current location\n"
           "\texplain handle SIGINT stop\n"
+          "\tllm [gpt|glm] select llm\n"
           )
 # gdb.execute("ai", from_tty=True)
 
